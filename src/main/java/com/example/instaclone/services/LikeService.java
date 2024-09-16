@@ -9,6 +9,8 @@ import com.example.instaclone.repository.LikeRepository;
 import com.example.instaclone.repository.PostRepository;
 import com.example.instaclone.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,22 +24,26 @@ public class LikeService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
-    public LikeDTO addLike(Long postId, Long userId) {
+    public LikeDTO addLike(Long postId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         // Create new Like
-        Like like = new Like(null, user, post);
+        Like like = new Like(null, currentUser, post);
         Like savedLike = likeRepository.save(like);
 
         return toDTO(savedLike);
     }
 
-    public void removeLike(Long postId, Long userId) {
-        Like like = likeRepository.findByPostIdAndUserId(postId, userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Like not found for postId: " + postId + " and userId: " + userId));
+    public void removeLike(Long postId) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        Like like = likeRepository.findByPostIdAndUserId(postId, currentUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Like not found for postId: " + postId + " and userId: " + currentUser.getId()));
         likeRepository.delete(like);
     }
 

@@ -9,6 +9,8 @@ import com.example.instaclone.repository.CommentRepository;
 import com.example.instaclone.repository.PostRepository;
 import com.example.instaclone.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -22,14 +24,15 @@ public class CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
-    public CommentDTO addComment(Long postId, Long userId, CommentDTO commentDTO) {
+    public CommentDTO addComment(Long postId, CommentDTO commentDTO) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         // Create new Comment and set associations
-        Comment comment = new Comment(null, commentDTO.getText(), user, post);
+        Comment comment = new Comment(null, commentDTO.getText(), currentUser, post);
 
         // Save the new comment to the repository
         Comment savedComment = commentRepository.save(comment);
@@ -42,6 +45,13 @@ public class CommentService {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
 
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        if (!comment.getUser().equals(currentUser)) {
+            throw new SecurityException("You are not allowed to update this comment.");
+        }
+
         comment.setText(commentDTO.getText());
         return toDTO(commentRepository.save(comment));
     }
@@ -49,6 +59,14 @@ public class CommentService {
     public void deleteComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        User currentUser = (User) authentication.getPrincipal();
+
+        if (!comment.getUser().equals(currentUser)) {
+            throw new SecurityException("You are not allowed to delete this comment.");
+        }
+
         commentRepository.delete(comment);
     }
 

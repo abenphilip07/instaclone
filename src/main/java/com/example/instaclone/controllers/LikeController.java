@@ -4,6 +4,7 @@ import com.example.instaclone.dtos.LikeDTO;
 import com.example.instaclone.services.LikeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,13 +18,15 @@ public class LikeController {
     private final LikeService likeService;
 
     @PostMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<LikeDTO> addLike(@Validated @RequestBody LikeDTO likeDTO) {
-        return ResponseEntity.ok(likeService.addLike(likeDTO.getPostId(), likeDTO.getUserId()));
+        return ResponseEntity.ok(likeService.addLike(likeDTO.getPostId()));
     }
 
     @DeleteMapping
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> removeLike(@Validated @RequestBody LikeDTO likeDTO) {
-        likeService.removeLike(likeDTO.getPostId(), likeDTO.getUserId());
+        likeService.removeLike(likeDTO.getPostId());
         return ResponseEntity.noContent().build();
     }
 

@@ -16,17 +16,6 @@ public class UserService {
 
     private final UserRepository userRepository;
 
-    // Create a new user
-    public UserDTO createUser(UserDTO userDTO) {
-        User user = new User();
-        user.setName(userDTO.getName());
-        user.setEmail(userDTO.getEmail());
-        user.setPassword(userDTO.getPassword());
-
-        User savedUser = userRepository.save(user);
-        userDTO.setId(savedUser.getId());  // Set the generated ID back to the DTO
-        return userDTO;
-    }
 
     // Update an existing user
     public UserDTO updateUser(Long userId, UserDTO userDTO) {

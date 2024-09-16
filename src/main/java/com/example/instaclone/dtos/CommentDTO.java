@@ -17,7 +17,6 @@ public class CommentDTO {
     @NotBlank(message = "Text cannot be blank")
     private String text;
 
-    @NotNull(message = "User ID cannot be null")
     private Long userId;
 
     @NotNull(message = "Post ID cannot be null")

@@ -16,7 +16,6 @@ import jakarta.validation.constraints.Min;
 public class LikeDTO {
     private Long likeId;
 
-    @NotNull(message = "User ID cannot be null")
     private Long userId;
 
     @NotNull(message = "Post ID cannot be null")

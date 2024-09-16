@@ -1,10 +1,10 @@
 package com.example.instaclone.controllers;
 
 import com.example.instaclone.dtos.UserDTO;
-
 import com.example.instaclone.services.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,12 +17,8 @@ public class UserController {
 
     private final UserService userService;
 
-    @PostMapping
-    public ResponseEntity<UserDTO> createUser(@Validated @RequestBody UserDTO userDTO) {
-        return ResponseEntity.ok(userService.createUser(userDTO));
-    }
-
     @PutMapping("/{id}")
+    @PreAuthorize("@userService.isCurrentUser(#id)")
     public ResponseEntity<UserDTO> updateUser(@PathVariable Long id, @Validated @RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userService.updateUser(id, userDTO));
     }
@@ -33,6 +29,7 @@ public class UserController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("@userService.isCurrentUser(#id)")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();

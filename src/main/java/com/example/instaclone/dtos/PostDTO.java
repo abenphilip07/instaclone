@@ -24,7 +24,6 @@ public class PostDTO {
     @Size(max = 500, message = "Caption cannot exceed 500 characters")
     private String caption;
 
-    @NotNull(message = "User ID cannot be null")
     private Long userId;
 
     private List<Long> commentIds;
