@@ -24,23 +24,27 @@ public class CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
-    public CommentDTO addComment(Long postId, CommentDTO commentDTO) {
+    // Create a new comment
+    public CommentDTO addComment(CommentDTO commentDTO) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) authentication.getPrincipal();
+        User currentUser = (User) authentication.getPrincipal(); // Fetch current user
 
-        Post post = postRepository.findById(postId)
-                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+        Post post = postRepository.findById(commentDTO.getPostId())
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + commentDTO.getPostId()));
 
-        // Create new Comment and set associations
-        Comment comment = new Comment(null, commentDTO.getText(), currentUser, post);
+        // Create and save a new comment
+        Comment comment = new Comment();
+        comment.setText(commentDTO.getText());
+        comment.setPost(post);
+        comment.setUser(currentUser);
 
-        // Save the new comment to the repository
         Comment savedComment = commentRepository.save(comment);
 
-        // Convert saved comment to DTO
-        return toDTO(savedComment);
+        commentDTO.setCommentId(savedComment.getCommentId());
+        return commentDTO; // Return the saved comment DTO
     }
 
+    // Update an existing comment
     public CommentDTO updateComment(Long commentId, CommentDTO commentDTO) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
@@ -48,14 +52,18 @@ public class CommentService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
-        if (!comment.getUser().equals(currentUser)) {
-            throw new SecurityException("You are not allowed to update this comment.");
+        // Ensure that the current user owns the comment
+        if (!comment.getUser().getId().equals(currentUser.getId())) {
+            throw new SecurityException("User can only update their own comments.");
         }
 
         comment.setText(commentDTO.getText());
-        return toDTO(commentRepository.save(comment));
+        commentRepository.save(comment);
+
+        return commentDTO;
     }
 
+    // Delete a comment
     public void deleteComment(Long commentId) {
         Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Comment not found with id: " + commentId));
@@ -63,17 +71,25 @@ public class CommentService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
-        if (!comment.getUser().equals(currentUser)) {
-            throw new SecurityException("You are not allowed to delete this comment.");
+        // Ensure that the current user owns the comment
+        if (!comment.getUser().getId().equals(currentUser.getId())) {
+            throw new SecurityException("User can only delete their own comments.");
         }
 
         commentRepository.delete(comment);
     }
 
+    // Get all comments for a post
     public List<CommentDTO> getCommentsForPost(Long postId) {
-        return commentRepository.findByPostId(postId).stream().map(this::toDTO).collect(Collectors.toList());
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+
+        return commentRepository.findByPostId(postId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
+    // Convert Comment entity to CommentDTO
     private CommentDTO toDTO(Comment comment) {
         return CommentDTO.builder()
                 .commentId(comment.getCommentId())

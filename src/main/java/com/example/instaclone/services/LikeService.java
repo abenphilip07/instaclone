@@ -14,6 +14,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,33 +25,53 @@ public class LikeService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
 
-    public LikeDTO addLike(Long postId) {
+    // Add a like to a post
+    public String addLike(Long postId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        User currentUser = (User) authentication.getPrincipal();
+        User currentUser = (User) authentication.getPrincipal(); // Fetch current user
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
 
-        // Create new Like
-        Like like = new Like(null, currentUser, post);
-        Like savedLike = likeRepository.save(like);
+        // Check if the user already liked the post
+        Optional<Like> existingLike = likeRepository.findByPostIdAndUserId(postId, currentUser.getId());
+        if (existingLike.isPresent()) {
+            return "You have already liked this post.";
+        }
 
-        return toDTO(savedLike);
+        // Create a new like
+        Like like = new Like();
+        like.setUser(currentUser);
+        like.setPost(post);
+
+        likeRepository.save(like);
+
+        return "Like added successfully.";
     }
 
-    public void removeLike(Long postId) {
+    // Remove a like from a post
+    public String removeLike(Long postId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User currentUser = (User) authentication.getPrincipal();
 
         Like like = likeRepository.findByPostIdAndUserId(postId, currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Like not found for postId: " + postId + " and userId: " + currentUser.getId()));
+
         likeRepository.delete(like);
+        return "Like removed successfully.";
     }
 
+    // Get all likes for a post
     public List<LikeDTO> getLikesForPost(Long postId) {
-        return likeRepository.findByPostId(postId).stream().map(this::toDTO).collect(Collectors.toList());
+        postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post not found with id: " + postId));
+
+        return likeRepository.findByPostId(postId).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
     }
 
+    // Convert Like entity to LikeDTO
     private LikeDTO toDTO(Like like) {
         return LikeDTO.builder()
                 .likeId(like.getLikeId())
